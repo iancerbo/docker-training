@@ -2,6 +2,8 @@
 
 ## 101
 
+[Presentation](https://cerboehr-my.sharepoint.com/:p:/g/personal/ian_johnson_cer_bo/Ec7OJ3fTUstPpCSws--bNOgBfHKWsDKrzCyVUQDNs07MTA?e=PQuSAo)
+
 First, let's grab a copy of an `ubunutu` image from Docker Hub:
 
 ```shell
