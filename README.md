@@ -46,6 +46,72 @@ docker run -it ubuntu bash
 exit
 ```
 
-Huh? It isn't there. Why not?
+Huh? It isn't there. Why not? Because containers do NOT save state. Containers are intended to run only. If we want state, we need to use an update image.
 
-https://github.com/iancerbo/docker-training/blob/61cb2120dd6ac1e4973545486cf52f02f343f366/101/Dockerfile
+To solve this, we'll create a Dockerfile.
+
+```shell
+touch Dockerfile
+nvim Dockerfile
+```
+
+```Dockerfile
+# Use the official Ubuntu base image
+FROM ubuntu:latest
+
+# Install dependencies
+RUN apt-get update && \
+    apt-get install -y cowsay fortune && \
+    apt-get clean
+
+# Set cowsay to be executable by default
+RUN chmod +x /usr/games/cowsay
+
+# Run fortune and pipe it to cowsay
+CMD /usr/games/fortune | /usr/games/cowsay
+```
+
+And then build a docker image from it.
+
+```shell
+docker build -t moodini .
+docker run moodini
+```
+
+And it works! Great!
+
+Now we have a simple process running in a container. Let's wrap this up behind a web server. Update the Dockerfile.
+
+```Dockerfile
+# Use the official Ubuntu base image
+FROM ubuntu:latest
+
+# Install dependencies: Apache2, Cowsay, and Fortune
+RUN apt-get update && \
+    apt-get install -y apache2 cowsay fortune && \
+    apt-get clean
+
+# Generate a fortune and pipe it to cowsay, then save the output as an HTML file
+RUN /usr/games/fortune | /usr/games/cowsay > /var/www/html/index.html
+
+# Configure Apache to serve the HTML file
+RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
+
+# Expose port 80 for the web server
+EXPOSE 80
+
+# Start Apache in the foreground
+CMD ["apachectl", "-D", "FOREGROUND"]
+```
+
+And then we build a new image. We add a flag to run the container in daemon mode (background) and to map the port.
+
+```shell
+docker build -t moodini-web .
+docker run moodini-web
+docker run -d -p 8080:80 moodini-web
+```
+
+Great, now let's visit the page at http://locahost:8080/
+
+This works, but it gives us an ugly response. Let's make it prettier!
