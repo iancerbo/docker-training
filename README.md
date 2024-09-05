@@ -114,4 +114,58 @@ docker run -d -p 8080:80 moodini-web
 
 Great, now let's visit the page at http://locahost:8080/
 
-This works, but it gives us an ugly response. Let's make it prettier!
+This works, but it gives us an ugly response. Let's make it prettier! Update the Dockerfile again.
+
+```Dockerfile
+# Use the official Ubuntu base image
+FROM ubuntu:latest
+
+# Install dependencies: Apache2, Cowsay, and Fortune
+RUN apt-get update && \
+    apt-get install -y apache2 cowsay fortune && \
+    apt-get clean
+
+# Generate a fortune, pipe it to cowsay, wrap it in HTML <pre> tags, and save it as an HTML file
+RUN echo "<html><body><pre>" > /var/www/html/index.html && \
+    /usr/games/fortune | /usr/games/cowsay >> /var/www/html/index.html && \
+    echo "</pre></body></html>" >> /var/www/html/index.html
+
+# Configure Apache to serve the HTML file
+RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
+
+# Expose port 80 for the web server
+EXPOSE 80
+
+# Start Apache in the foreground
+CMD ["apachectl", "-D", "FOREGROUND"]
+```
+
+Before we build again, let's talk about how Docker images are versioned: tags. We'll add a `v2` tag for this image to demonstrate.
+
+```shell
+docker build -t moodini-web:v2 .
+docker run -d -p 8080:80 moodini-web:v2
+```
+
+Uh oh! Why didn't this work? Because we never stopped the last container, which means is still running (and listening on port 8080). So we have run into a port collision. Let's stop the other container.
+
+```shell
+docker ps
+docker ps -q
+docker stop $(docker ps -q)
+docker run -d -p 8080:80 moodini-web:v2
+```
+
+Let's visit the page again at http://locahost:8080/
+
+And now our `moodini-web` service outputs something a little prettier.
+
+Great! What's next?
+
+- Adding a database
+- Using docker compose
+- Understanding the docker setup for our apps
+
+## 102
+
+Next time!
