@@ -54,7 +54,7 @@ To solve this, we'll create a Dockerfile.
 
 ```shell
 touch Dockerfile
-nvim Dockerfile
+$EDITOR Dockerfile
 ```
 
 ```Dockerfile
