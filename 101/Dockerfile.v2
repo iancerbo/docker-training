@@ -1,0 +1,19 @@
+# Use the official Ubuntu base image
+FROM ubuntu:latest
+
+# Install dependencies: Apache2, Cowsay, and Fortune
+RUN apt-get update && \
+    apt-get install -y apache2 cowsay fortune && \
+    apt-get clean
+
+# Generate a fortune and pipe it to cowsay, then save the output as an HTML file
+RUN /usr/games/fortune | /usr/games/cowsay > /var/www/html/index.html
+
+# Configure Apache to serve the HTML file
+RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
+
+# Expose port 80 for the web server
+EXPOSE 80
+
+# Start Apache in the foreground
+CMD ["apachectl", "-D", "FOREGROUND"]

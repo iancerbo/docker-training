@@ -1,0 +1,13 @@
+# Use the official Ubuntu base image
+FROM ubuntu:latest
+
+# Install dependencies
+RUN apt-get update && \
+    apt-get install -y cowsay fortune && \
+    apt-get clean
+
+# Set cowsay to be executable by default
+RUN chmod +x /usr/games/cowsay
+
+# Run fortune and pipe it to cowsay
+CMD /usr/games/fortune | /usr/games/cowsay
