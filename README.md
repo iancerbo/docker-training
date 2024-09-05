@@ -147,7 +147,7 @@ docker build -t moodini-web:v2 .
 docker run -d -p 8080:80 moodini-web:v2
 ```
 
-Uh oh! Why didn't this work? Because we never stopped the last container, which means is still running (and listening on port 8080). So we have run into a port collision. Let's stop the other container.
+Uh oh! Why didn't this work? Because we never stopped the last container, which means it's still running (and listening on port 8080). So we have run into a port collision. Let's stop the other container.
 
 ```shell
 docker ps
