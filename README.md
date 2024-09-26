@@ -170,4 +170,202 @@ Great! What's next?
 
 ## 102
 
-Next time!
+[Presentation](https://cerboehr-my.sharepoint.com/:p:/g/personal/ian_johnson_cer_bo/ERU8tAMNrTpEjy6MwjgUpY0B1QjNJJrjKIUSf7-LJtH3yQ?e=M3UZkq)
+
+For containers to be able to talk to each other, they must be on the same network. Just like with hardware, two machines must be on the same network to talk to each other. Docker networks are _essentially_ virtual networks.
+
+First, let's create a network.
+
+```sh
+docker network create my-network
+```
+
+Now, we can run two containers on this network.
+
+```sh
+docker run -d \
+  --name my-db-container \
+  --network my-network \
+  -e MYSQL_ROOT_PASSWORD=rootpassword \
+  mysql:latest
+
+docker run -d \
+  --name my-app-container \
+  --network my-network \
+  -e DB_HOST=my-db-container \
+  -e DB_PASSWORD=rootpassword \
+  my-app-image:latest
+```
+
+This is great! We have two containers running in the background that are on the same network. One container has the database, and the other has the application. This kind of service segregation is great for scaling purposes. However, our data is _still_ temporary. To get it to persist, we need to add a volume.
+
+Docker volumes are a way to persist data used by containers. To add the volume, we can pass a `-v` flag.
+
+```sh
+docker run -d \
+  --name my-db-container \
+  --network my-network \
+  -v db-data:/var/lib/mysql \
+  -e MYSQL_ROOT_PASSWORD=rootpassword \
+  mysql:latest
+
+docker run -d \
+  --name my-app-container \
+  --network my-network \
+  -v app-data:/usr/src/app \
+  -e DB_HOST=my-db-container \
+  -e DB_PASSWORD=rootpassword \
+  my-app-image:latest
+```
+
+Awesome! Now we have two containers on the same network that _also_ persist data.
+
+You may be wondering about the details of this network. To find those details, we can run the following command.
+
+```sh
+docker network inspect my-network
+```
+
+This gives us lots of details in case we need to debug, including what containers are attached to the network.
+
+In addition to syncing data to the filesystem, we can wrap this up in a real docker volume, which gives it a name _and_ makes it more predictable.
+
+```sh
+docker volume create shared-data
+```
+
+Here's what our commands look like using the named volume, instead of the local filesystem.
+
+```sh
+docker run -d \
+  --name my-db-container \
+  --network my-network \
+  -v shared-data:/shared \
+  mysql:latest
+
+docker run -d \
+  --name my-app-container \
+  --network my-network \
+  -v shared-data:/shared \
+  my-app-image:latest
+```
+
+This is all great, but it is **NOT** _the way_. One of the greatest benefits of Docker is not having to manage infrastructure, so let's stop using docker to manage infrastructure manually. How do we do that? Well, _all_ of these details can be defined in a `docker-compose.yml` file. With this file in place, we can use the `docker-compose` command to gain the same benefits without running a ton of commands.
+
+Returning to our example, here's how that looks for our `moodini-web` service, now backed by a real database!
+
+First, we need a Dockerfile.
+
+```dockerfile
+# Use the official Ubuntu base image
+FROM ubuntu:latest
+
+# Install dependencies: Apache2, Cowsay, Fortune, MySQL client
+RUN apt-get update && \
+    apt-get install -y apache2 cowsay fortune mysql-client && \
+    apt-get clean
+
+# Enable CGI module in Apache
+RUN a2enmod cgi
+
+# Copy the CGI script to the appropriate directory
+COPY get-fortune.cgi /usr/lib/cgi-bin/get-fortune.cgi
+RUN chmod +x /usr/lib/cgi-bin/get-fortune.cgi
+
+# Configure Apache to allow CGI execution
+RUN echo "<Directory /usr/lib/cgi-bin>" > /etc/apache2/sites-available/000-default.conf && \
+    echo "    Options +ExecCGI" >> /etc/apache2/sites-available/000-default.conf && \
+    echo "    AddHandler cgi-script .cgi" >> /etc/apache2/sites-available/000-default.conf && \
+    echo "</Directory>" >> /etc/apache2/sites-available/000-default.conf
+
+# Expose port 80 for the web server
+EXPOSE 80
+
+# Start Apache in the foreground
+CMD ["apachectl", "-D", "FOREGROUND"]
+```
+
+Notice that our Dockerfile references a cgi script. This is what that script looks like.
+
+```sh
+#!/bin/bash
+
+# Set content-type header
+echo "Content-type: text/html"
+echo ""
+
+# Connect to the MySQL database and fetch a fortune
+MYSQL_HOST="db"
+MYSQL_USER="root"
+MYSQL_PASSWORD="password"
+MYSQL_DATABASE="fortunes"
+
+# Fetch a random fortune from the database
+FORTUNE=$(mysql -h $MYSQL_HOST -u $MYSQL_USER -p$MYSQL_PASSWORD -D $MYSQL_DATABASE -e "SELECT message FROM fortunes ORDER BY RAND() LIMIT 1;" -s -N)
+
+# Output the fortune wrapped in cowsay
+echo "<html><body><pre>"
+echo "$FORTUNE" | /usr/games/cowsay
+echo "</pre></body></html>"
+```
+
+Finally, we create a `docker-compose.yml` file. This file defines declaratively what the service looks like.
+
+```yaml
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "8080:80"
+    depends_on:
+      - db
+    environment:
+      MYSQL_HOST: db
+      MYSQL_USER: root
+      MYSQL_PASSWORD: password
+      MYSQL_DATABASE: fortunes
+
+  db:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: fortunes
+    volumes:
+      - db-data:/var/lib/mysql
+      - ./db:/docker-entrypoint-initdb.d
+    ports:
+      - "3306:3306"
+    platform: linux/x86_64
+
+volumes:
+  db-data:
+```
+
+Fantastic! Now that we have all of this defined in files, we can start the entire service using just one command.
+
+```sh
+docker-compose up
+```
+
+Let's visit the newly defined service at http://locahost:8080/
+
+Now, we can referesh the page and we get _dynamic_ results! Huzzah!
+
+You may be wondering how the database has data in it to begin with, for the cgi script to be able to query. This is actually defined in the `db` folder. It's mounted to `docker-entrypoint-initdb.d` inside the container. As a result, the database is populated with everthing in the `db/init.sql` file.
+
+```sql
+CREATE TABLE fortunes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    message VARCHAR(255) NOT NULL
+);
+
+INSERT INTO fortunes (message) VALUES ('You will have a great day!');
+INSERT INTO fortunes (message) VALUES ('Something wonderful is about to happen.');
+INSERT INTO fortunes (message) VALUES ('Be prepared for a pleasant surprise.');
+```
+
+And that's it. All of the commands and data have been defined inside files, which can then be version controlled. This means we can manage our infrastructure using code!
+
+Now that we have seen what this looks like with a toy example, and we have a basic understanding of docker images, containers, networks, and volumes, we have the tools and knowledge to delve into how we use Docker for the MDHQ and Frodo projects.
