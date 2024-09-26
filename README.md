@@ -176,13 +176,13 @@ For containers to be able to talk to each other, they must be on the same networ
 
 First, let's create a network.
 
-```sh
+```shell
 docker network create my-network
 ```
 
 Now, we can run two containers on this network.
 
-```sh
+```shell
 docker run -d \
   --name my-db-container \
   --network my-network \
@@ -201,7 +201,7 @@ This is great! We have two containers running in the background that are on the 
 
 Docker volumes are a way to persist data used by containers. To add the volume, we can pass a `-v` flag.
 
-```sh
+```shell
 docker run -d \
   --name my-db-container \
   --network my-network \
@@ -222,7 +222,7 @@ Awesome! Now we have two containers on the same network that _also_ persist data
 
 You may be wondering about the details of this network. To find those details, we can run the following command.
 
-```sh
+```shell
 docker network inspect my-network
 ```
 
@@ -230,13 +230,13 @@ This gives us lots of details in case we need to debug, including what container
 
 In addition to syncing data to the filesystem, we can wrap this up in a real docker volume, which gives it a name _and_ makes it more predictable.
 
-```sh
+```shell
 docker volume create shared-data
 ```
 
 Here's what our commands look like using the named volume, instead of the local filesystem.
 
-```sh
+```shell
 docker run -d \
   --name my-db-container \
   --network my-network \
@@ -287,7 +287,7 @@ CMD ["apachectl", "-D", "FOREGROUND"]
 
 Notice that our Dockerfile references a cgi script. This is what that script looks like.
 
-```sh
+```shell
 #!/bin/bash
 
 # Set content-type header
@@ -345,7 +345,7 @@ volumes:
 
 Fantastic! Now that we have all of this defined in files, we can start the entire service using just one command.
 
-```sh
+```shell
 docker-compose up
 ```
 
