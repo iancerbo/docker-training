@@ -355,7 +355,7 @@ volumes:
   db-data:
 ```
 
-Fantastic! Now that we have all of this defined in files, we can start the entire service using just one command.
+Fantastic! Now that we have all of this defined in files, we can start the entire service using just one command. :sparkles:
 
 ```shell
 docker-compose up
