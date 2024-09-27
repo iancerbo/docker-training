@@ -197,7 +197,18 @@ docker run -d \
   my-app-image:latest
 ```
 
-This is great! We have two containers running in the background that are on the same network. One container has the database, and the other has the application. This kind of service segregation is great for scaling purposes. However, our data is _still_ temporary. To get it to persist, we need to add a volume.
+This is great! We have two containers running in the background that are on the same network. One container has the database, and the other has the application.
+
+We are now able to access the database in the separate container (like a separate database server) from the app container by simply using its name as part of the standard `mysql` command. Here's how we can do that.
+
+```shell
+docker exec -it my-app-container /bin/bash
+mysql -h my-db-container -u root -prootpassword
+```
+
+And voila! Instead of having the database in the same container, we have separated it into its own container. In addition, since the containers are on the same network, we are able to connect to the database from the app container.
+
+This kind of service segregation is great for scaling purposes. However, our data is _still_ temporary. To get it to persist, we need to add a volume.
 
 Docker volumes are a way to persist data used by containers. To add the volume, we can pass a `-v` flag.
 
