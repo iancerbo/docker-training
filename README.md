@@ -368,4 +368,4 @@ INSERT INTO fortunes (message) VALUES ('Be prepared for a pleasant surprise.');
 
 And that's it. All of the commands and data have been defined inside files, which can then be version controlled. This means we can manage our infrastructure using code!
 
-Now that we have seen what this looks like with a toy example, and we have a basic understanding of docker images, containers, networks, and volumes, we have the tools and knowledge to delve into how we use Docker for the MDHQ and Frodo projects.
+Now that we have seen what this looks like with a toy example, and we have a basic understanding of docker images, containers, networks, and volumes, we have the tools and knowledge to delve into how we use Docker for the [MDHQ](https://github.com/MD-HQ/MDHQ2.4) and [Frodo](https://github.com/MD-HQ/frodo) projects.
