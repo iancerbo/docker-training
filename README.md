@@ -260,9 +260,9 @@ First, we need a Dockerfile.
 # Use the official Ubuntu base image
 FROM ubuntu:latest
 
-# Install dependencies: Apache2, Cowsay, Fortune, MySQL client
+# Install Apache and necessary utilities
 RUN apt-get update && \
-    apt-get install -y apache2 cowsay fortune mysql-client && \
+    apt-get install -y apache2 apache2-suexec-pristine libapache2-mod-fcgid curl cowsay fortune mysql-client && \
     apt-get clean
 
 # Enable CGI module in Apache
@@ -272,11 +272,12 @@ RUN a2enmod cgi
 COPY get-fortune.cgi /usr/lib/cgi-bin/get-fortune.cgi
 RUN chmod +x /usr/lib/cgi-bin/get-fortune.cgi
 
-# Configure Apache to allow CGI execution
-RUN echo "<Directory /usr/lib/cgi-bin>" > /etc/apache2/sites-available/000-default.conf && \
-    echo "    Options +ExecCGI" >> /etc/apache2/sites-available/000-default.conf && \
-    echo "    AddHandler cgi-script .cgi" >> /etc/apache2/sites-available/000-default.conf && \
-    echo "</Directory>" >> /etc/apache2/sites-available/000-default.conf
+# Configure Apache to serve CGI scripts
+RUN echo "ScriptAlias /cgi-bin/ /usr/lib/cgi-bin/" > /etc/apache2/conf-enabled/cgi-bin.conf && \
+    echo "<Directory /usr/lib/cgi-bin>" >> /etc/apache2/conf-enabled/cgi-bin.conf && \
+    echo "    Options +ExecCGI" >> /etc/apache2/conf-enabled/cgi-bin.conf && \
+    echo "    AddHandler cgi-script .sh" >> /etc/apache2/conf-enabled/cgi-bin.conf && \
+    echo "</Directory>" >> /etc/apache2/conf-enabled/cgi-bin.conf
 
 # Expose port 80 for the web server
 EXPOSE 80
@@ -349,7 +350,7 @@ Fantastic! Now that we have all of this defined in files, we can start the entir
 docker-compose up
 ```
 
-Let's visit the newly defined service at http://locahost:8080/
+Let's visit the newly defined service at http://locahost:8080/cgi-bin/get-fortune.cgi
 
 Now, we can referesh the page and we get _dynamic_ results! Huzzah!
 
